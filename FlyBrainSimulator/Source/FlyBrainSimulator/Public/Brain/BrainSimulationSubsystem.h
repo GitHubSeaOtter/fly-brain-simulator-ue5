@@ -28,6 +28,10 @@ public:
     UFUNCTION(BlueprintPure, Category = "Fly Brain")
     int64 GetStepCount() const { return static_cast<int64>(Core.GetStepCount()); }
     UFUNCTION(BlueprintPure, Category = "Fly Brain")
+    int64 GetTotalSpikeCount() const { return static_cast<int64>(Core.GetTotalSpikeCount()); }
+    UFUNCTION(BlueprintPure, Category = "Fly Brain")
+    double GetLastUpdateMilliseconds() const { return LastUpdateMilliseconds; }
+    UFUNCTION(BlueprintPure, Category = "Fly Brain")
     double GetSimulationTimeSeconds() const { return Core.GetStepCount() * Core.GetConfig().TimestepSeconds; }
     UFUNCTION(BlueprintPure, Category = "Fly Brain")
     double GetBacklogSeconds() const { return Core.GetBacklogSeconds(); }
@@ -43,4 +47,5 @@ private:
     FlyBrain::BrainCore Core;
     bool bRunning = false;
     bool bReady = false;
+    double LastUpdateMilliseconds = 0.0;
 };

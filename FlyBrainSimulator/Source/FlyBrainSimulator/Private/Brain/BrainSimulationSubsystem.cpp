@@ -1,5 +1,6 @@
 #include "Brain/BrainSimulationSubsystem.h"
 #include "Stats/Stats.h"
+#include "HAL/PlatformTime.h"
 
 void UBrainSimulationSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -32,11 +33,16 @@ TStatId UBrainSimulationSubsystem::GetStatId() const
 
 void UBrainSimulationSubsystem::Tick(float DeltaTime)
 {
-    if (bRunning && bReady) { Core.Advance(static_cast<double>(DeltaTime)); }
+    if (bRunning && bReady)
+    {
+        const double Begin = FPlatformTime::Seconds();
+        Core.Advance(static_cast<double>(DeltaTime));
+        LastUpdateMilliseconds = (FPlatformTime::Seconds() - Begin) * 1000.0;
+    }
 }
 
 void UBrainSimulationSubsystem::Start() { bRunning = bReady; }
-void UBrainSimulationSubsystem::Stop() { bRunning = false; }
+void UBrainSimulationSubsystem::Stop() { bRunning = false; LastUpdateMilliseconds = 0.0; }
 void UBrainSimulationSubsystem::Reset()
 {
     Stop();

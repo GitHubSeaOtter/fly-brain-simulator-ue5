@@ -55,6 +55,7 @@ void BrainCore::Reset()
     std::fill(Refractory.begin(), Refractory.end(), 0);
     std::fill(Spikes.begin(), Spikes.end(), std::uint8_t{0});
     StepCount = 0;
+    TotalSpikeCount = 0;
     Accumulator = 0.0;
 }
 
@@ -77,6 +78,7 @@ void BrainCore::Step()
             if (Voltages[N] >= Settings.Threshold)
             {
                 Spikes[N] = 1;
+                ++TotalSpikeCount;
                 Voltages[N] = Settings.ResetPotential;
                 Refractory[N] = Settings.RefractorySteps;
             }

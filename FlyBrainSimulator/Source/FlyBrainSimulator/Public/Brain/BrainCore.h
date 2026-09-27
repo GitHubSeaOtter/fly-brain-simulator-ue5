@@ -32,6 +32,7 @@ public:
     std::uint32_t Advance(double ElapsedSeconds, std::uint32_t MaxSteps = 256);
     const Config& GetConfig() const { return Settings; }
     std::uint64_t GetStepCount() const { return StepCount; }
+    std::uint64_t GetTotalSpikeCount() const { return TotalSpikeCount; }
     double GetBacklogSeconds() const { return Accumulator; }
     std::size_t GetStorageBytes() const;
     std::span<const double> GetVoltages() const { return Voltages; }
@@ -47,6 +48,7 @@ private:
     std::vector<std::uint32_t> Refractory, RowOffsets, Targets;
     std::vector<std::uint8_t> Spikes;
     std::uint64_t StepCount = 0;
+    std::uint64_t TotalSpikeCount = 0; // Observation only; never feeds back into integration.
     double Accumulator = 0.0;
 };
 }
