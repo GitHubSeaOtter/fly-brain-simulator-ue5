@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.20)
+project(FlyBrainCoreTests LANGUAGES CXX)
+enable_testing()
+add_executable(BrainCoreTests BrainCoreTests.cpp
+    ../../FlyBrainSimulator/Source/FlyBrainSimulator/Private/Brain/BrainCore.cpp)
+target_include_directories(BrainCoreTests PRIVATE ../../FlyBrainSimulator/Source/FlyBrainSimulator/Public)
+target_compile_features(BrainCoreTests PRIVATE cxx_std_20)
+if(MSVC)
+    target_compile_options(BrainCoreTests PRIVATE /W4 /fp:precise)
+else()
+    target_compile_options(BrainCoreTests PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
+endif()
+add_test(NAME BrainCore COMMAND BrainCoreTests)

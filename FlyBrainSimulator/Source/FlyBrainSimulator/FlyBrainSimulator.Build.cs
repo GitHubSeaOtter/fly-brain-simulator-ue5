@@ -7,6 +7,8 @@ public class FlyBrainSimulator : ModuleRules
 	public FlyBrainSimulator(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		CppStandard = CppStandardVersion.Cpp20;
+		FPSemantics = FPSemanticsMode.Precise;
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput" });
 
