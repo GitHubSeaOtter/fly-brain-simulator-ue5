@@ -98,12 +98,16 @@ void AFlyBrainDemoFly::UpdateFromBrain()
     const auto* Brain = GetWorld()->GetSubsystem<UBrainSimulationSubsystem>();
     if (!Brain) { return; }
     const double Time = Brain->GetSimulationTimeSeconds();
-    SetActorLocation(PositionAtTime(Time));
+    const double ResponseA = FMath::Clamp(Brain->GetMotorResponseA(), 0.0, 1.0);
+    const double ResponseB = FMath::Clamp(Brain->GetMotorResponseB(), 0.0, 1.0);
+    const double Response = FMath::Max(ResponseA, ResponseB);
+    SetActorLocation(PositionAtTime(Time) + FVector(0, 0, Response * 55));
     const double Angle = Time * 0.35;
     const FVector Tangent(-200 * FMath::Sin(Angle), 150 * FMath::Cos(Angle), 0);
-    SetActorRotation(FRotator(3 * FMath::Sin(Time * 2), Tangent.Rotation().Yaw, -8 * FMath::Sin(Angle)));
+    SetActorRotation(FRotator(3 * FMath::Sin(Time * 2), Tangent.Rotation().Yaw + (ResponseA - ResponseB) * 65,
+        -8 * FMath::Sin(Angle) + (ResponseA - ResponseB) * 20));
     // Slowed for legibility; this is not the biological wingbeat frequency.
-    const double Flap = 24 * FMath::Sin(Time * 2 * PI * 7);
+    const double Flap = (24 + Response * 24) * FMath::Sin(Time * 2 * PI * 7);
     LeftWing->SetRelativeRotation(FRotator(0, 0, Flap));
     RightWing->SetRelativeRotation(FRotator(0, 0, -Flap));
 }
@@ -128,7 +132,7 @@ AFlyBrainDemoGameMode::AFlyBrainDemoGameMode()
 void AFlyBrainDemoGameMode::BeginPlay()
 {
     Super::BeginPlay();
-    GetWorld()->GetSubsystem<UBrainSimulationSubsystem>()->Reset();
+    GetWorld()->GetSubsystem<UBrainSimulationSubsystem>()->EnableConditioningDemo();
     auto* Fly = GetWorld()->SpawnActor<AFlyBrainDemoFly>();
     Fly->UpdateFromBrain();
 

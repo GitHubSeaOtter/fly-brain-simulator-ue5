@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Brain/BrainCore.h"
+#include "Brain/ConditioningExperiment.h"
 #include "BrainSimulationSubsystem.generated.h"
 
 UCLASS()
@@ -23,6 +24,38 @@ public:
     void Stop();
     UFUNCTION(BlueprintCallable, Category = "Fly Brain")
     void Reset();
+    UFUNCTION(BlueprintCallable, Category = "Fly Brain|Learning")
+    bool EnableConditioningDemo();
+    UFUNCTION(BlueprintCallable, Category = "Fly Brain|Learning")
+    bool StimulateA();
+    UFUNCTION(BlueprintCallable, Category = "Fly Brain|Learning")
+    bool StimulateB();
+    UFUNCTION(BlueprintCallable, Category = "Fly Brain|Learning")
+    bool TrainA();
+    UFUNCTION(BlueprintCallable, Category = "Fly Brain|Learning")
+    bool RunComparison();
+    UFUNCTION(BlueprintCallable, Category = "Fly Brain|Learning")
+    void ForgetLearning();
+    UFUNCTION(BlueprintCallable, Category = "Fly Brain|Learning")
+    void SetLearningEnabled(bool Enabled)
+    {
+        if (!Experiment.IsActive() && bLearningEnabled != Enabled) { bLearningEnabled = Enabled; Experiment.ClearComparison(); }
+    }
+    UFUNCTION(BlueprintCallable, Category = "Fly Brain|Learning")
+    void SetRewardEnabled(bool Enabled)
+    {
+        if (!Experiment.IsActive() && bRewardEnabled != Enabled) { bRewardEnabled = Enabled; Experiment.ClearComparison(); }
+    }
+    UFUNCTION(BlueprintPure, Category = "Fly Brain|Learning")
+    bool IsLearningEnabled() const { return bLearningEnabled; }
+    UFUNCTION(BlueprintPure, Category = "Fly Brain|Learning")
+    bool IsRewardEnabled() const { return bRewardEnabled; }
+    UFUNCTION(BlueprintPure, Category = "Fly Brain|Learning")
+    bool IsExperimentActive() const { return Experiment.IsActive(); }
+    UFUNCTION(BlueprintPure, Category = "Fly Brain|Learning")
+    double GetMotorResponseA() const { return Experiment.GetActivityA(); }
+    UFUNCTION(BlueprintPure, Category = "Fly Brain|Learning")
+    double GetMotorResponseB() const { return Experiment.GetActivityB(); }
     UFUNCTION(BlueprintPure, Category = "Fly Brain")
     bool IsRunning() const { return bRunning; }
     UFUNCTION(BlueprintPure, Category = "Fly Brain")
@@ -43,8 +76,13 @@ public:
     int64 GetCoreStorageBytes() const { return static_cast<int64>(Core.GetStorageBytes()); }
 
     const FlyBrain::BrainCore& GetCore() const { return Core; }
+    const FlyBrain::ConditioningExperiment& GetExperiment() const { return Experiment; }
 private:
+    bool BeginExperiment(FlyBrain::ExperimentCommand Command);
     FlyBrain::BrainCore Core;
+    FlyBrain::ConditioningExperiment Experiment;
+    bool bLearningEnabled = true;
+    bool bRewardEnabled = true;
     bool bRunning = false;
     bool bReady = false;
     double LastUpdateMilliseconds = 0.0;

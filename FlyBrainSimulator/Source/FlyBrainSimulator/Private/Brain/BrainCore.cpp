@@ -25,6 +25,7 @@ bool BrainCore::Initialize(const Config& InConfig)
     Settings = C;
     Voltages.resize(C.NeuronCount);
     PendingInputs.resize(C.NeuronCount);
+    ExternalDrive.resize(C.NeuronCount);
     Refractory.resize(C.NeuronCount);
     Spikes.resize(C.NeuronCount);
     RowOffsets.resize(static_cast<std::size_t>(C.NeuronCount) + 1);
@@ -50,13 +51,54 @@ bool BrainCore::Initialize(const Config& InConfig)
 
 void BrainCore::Reset()
 {
-    std::fill(Voltages.begin(), Voltages.end(), Settings.RestPotential);
-    std::fill(PendingInputs.begin(), PendingInputs.end(), 0.0);
-    std::fill(Refractory.begin(), Refractory.end(), 0);
-    std::fill(Spikes.begin(), Spikes.end(), std::uint8_t{0});
+    ClearNeuronState();
     StepCount = 0;
     TotalSpikeCount = 0;
     Accumulator = 0.0;
+}
+
+void BrainCore::ClearNeuronState()
+{
+    std::fill(Voltages.begin(), Voltages.end(), Settings.RestPotential);
+    std::fill(PendingInputs.begin(), PendingInputs.end(), 0.0);
+    std::fill(ExternalDrive.begin(), ExternalDrive.end(), 0.0);
+    std::fill(Refractory.begin(), Refractory.end(), 0);
+    std::fill(Spikes.begin(), Spikes.end(), std::uint8_t{0});
+}
+
+bool BrainCore::SetGraph(std::span<const std::uint32_t> Rows,
+    std::span<const std::uint32_t> Destinations, std::span<const double> EdgeWeights)
+{
+    if (Voltages.empty() || Rows.size() != Voltages.size() + 1 || Rows.front() != 0 ||
+        Rows.back() != Destinations.size() || Destinations.size() != EdgeWeights.size()) { return false; }
+    for (std::size_t N = 1; N < Rows.size(); ++N)
+    {
+        if (Rows[N] < Rows[N - 1] || Rows[N] > Destinations.size()) { return false; }
+    }
+    for (std::size_t E = 0; E < Destinations.size(); ++E)
+    {
+        if (Destinations[E] >= Voltages.size() || !std::isfinite(EdgeWeights[E])) { return false; }
+    }
+    // Make copies first so callers may pass views of the existing graph.
+    std::vector<std::uint32_t> NewRows(Rows.begin(), Rows.end()), NewTargets(Destinations.begin(), Destinations.end());
+    std::vector<double> NewWeights(EdgeWeights.begin(), EdgeWeights.end());
+    RowOffsets.swap(NewRows); Targets.swap(NewTargets); Weights.swap(NewWeights);
+    Reset();
+    return true;
+}
+
+bool BrainCore::SetExternalDrive(std::uint32_t First, std::uint32_t Count, double Drive)
+{
+    if (!std::isfinite(Drive) || First > ExternalDrive.size() || Count > ExternalDrive.size() - First) { return false; }
+    std::fill(ExternalDrive.begin() + First, ExternalDrive.begin() + First + Count, Drive);
+    return true;
+}
+
+bool BrainCore::SetSynapseWeight(std::uint32_t Edge, double Weight)
+{
+    if (Edge >= Weights.size() || !std::isfinite(Weight)) { return false; }
+    Weights[Edge] = Weight;
+    return true;
 }
 
 void BrainCore::Step()
@@ -73,7 +115,7 @@ void BrainCore::Step()
         }
         else
         {
-            Voltages[N] += Alpha * (Settings.RestPotential - Voltages[N] + Settings.Drive)
+            Voltages[N] += Alpha * (Settings.RestPotential - Voltages[N] + Settings.Drive + ExternalDrive[N])
                 + PendingInputs[N];
             if (Voltages[N] >= Settings.Threshold)
             {
@@ -98,7 +140,8 @@ void BrainCore::Step()
     ++StepCount;
 }
 
-std::uint32_t BrainCore::Advance(double ElapsedSeconds, std::uint32_t MaxSteps)
+std::uint32_t BrainCore::Advance(double ElapsedSeconds, std::uint32_t MaxSteps,
+    StepHook Before, StepHook After, void* Context)
 {
     if (Voltages.empty() || !std::isfinite(ElapsedSeconds) || ElapsedSeconds < 0 ||
         !std::isfinite(Accumulator + ElapsedSeconds)) { return 0; }
@@ -106,7 +149,9 @@ std::uint32_t BrainCore::Advance(double ElapsedSeconds, std::uint32_t MaxSteps)
     std::uint32_t Executed = 0;
     while (Accumulator >= Settings.TimestepSeconds && Executed < MaxSteps)
     {
+        if (Before) { Before(*this, Context); }
         Step();
+        if (After) { After(*this, Context); }
         Accumulator -= Settings.TimestepSeconds;
         ++Executed;
     }
@@ -115,7 +160,7 @@ std::uint32_t BrainCore::Advance(double ElapsedSeconds, std::uint32_t MaxSteps)
 
 std::size_t BrainCore::GetStorageBytes() const
 {
-    return (Voltages.capacity() + PendingInputs.capacity() + Weights.capacity()) * sizeof(double)
+    return (Voltages.capacity() + PendingInputs.capacity() + Weights.capacity() + ExternalDrive.capacity()) * sizeof(double)
         + (Refractory.capacity() + RowOffsets.capacity() + Targets.capacity()) * sizeof(std::uint32_t)
         + Spikes.capacity() * sizeof(std::uint8_t);
 }

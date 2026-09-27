@@ -54,7 +54,12 @@ public:
     UFUNCTION(Exec) void DemoStart();
     UFUNCTION(Exec) void DemoStop();
     UFUNCTION(Exec) void DemoReset();
-    UFUNCTION(Exec) void DemoCapture();
+    UFUNCTION(Exec) void DemoCapture(float DelaySeconds = 5.0f);
+    UFUNCTION(Exec) void DemoCueA();
+    UFUNCTION(Exec) void DemoCueB();
+    UFUNCTION(Exec) void DemoTrain();
+    UFUNCTION(Exec) void DemoCompare();
+    UFUNCTION(Exec) void DemoForget();
     void ToggleBrain();
 private:
     TSharedPtr<SWidget> Dashboard;

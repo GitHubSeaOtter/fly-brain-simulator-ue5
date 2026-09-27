@@ -11,3 +11,15 @@ else()
     target_compile_options(BrainCoreTests PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
 endif()
 add_test(NAME BrainCore COMMAND BrainCoreTests)
+
+add_executable(ConditioningTests ConditioningTests.cpp
+    ../../FlyBrainSimulator/Source/FlyBrainSimulator/Private/Brain/BrainCore.cpp
+    ../../FlyBrainSimulator/Source/FlyBrainSimulator/Private/Brain/ConditioningExperiment.cpp)
+target_include_directories(ConditioningTests PRIVATE ../../FlyBrainSimulator/Source/FlyBrainSimulator/Public)
+target_compile_features(ConditioningTests PRIVATE cxx_std_20)
+if(MSVC)
+    target_compile_options(ConditioningTests PRIVATE /W4 /fp:precise)
+else()
+    target_compile_options(ConditioningTests PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
+endif()
+add_test(NAME Conditioning COMMAND ConditioningTests)

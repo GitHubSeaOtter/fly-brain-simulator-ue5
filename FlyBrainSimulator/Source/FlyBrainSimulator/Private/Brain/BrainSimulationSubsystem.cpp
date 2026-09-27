@@ -36,7 +36,12 @@ void UBrainSimulationSubsystem::Tick(float DeltaTime)
     if (bRunning && bReady)
     {
         const double Begin = FPlatformTime::Seconds();
-        Core.Advance(static_cast<double>(DeltaTime));
+        if (Experiment.IsReady())
+        {
+            Core.Advance(static_cast<double>(DeltaTime), 256,
+                FlyBrain::ConditioningExperiment::BeforeHook, FlyBrain::ConditioningExperiment::AfterHook, &Experiment);
+        }
+        else { Core.Advance(static_cast<double>(DeltaTime)); }
         LastUpdateMilliseconds = (FPlatformTime::Seconds() - Begin) * 1000.0;
     }
 }
@@ -46,5 +51,24 @@ void UBrainSimulationSubsystem::Stop() { bRunning = false; LastUpdateMillisecond
 void UBrainSimulationSubsystem::Reset()
 {
     Stop();
-    Core.Reset();
+    if (Experiment.IsReady()) { Experiment.Cancel(Core); }
+    else { Core.Reset(); }
 }
+
+bool UBrainSimulationSubsystem::EnableConditioningDemo()
+{
+    Stop();
+    bReady = Experiment.Initialize(Core);
+    return bReady;
+}
+bool UBrainSimulationSubsystem::BeginExperiment(FlyBrain::ExperimentCommand Command)
+{
+    if (!Experiment.IsReady() && !EnableConditioningDemo()) { return false; }
+    if (!Experiment.Begin(Core, Command, bLearningEnabled, bRewardEnabled)) { return false; }
+    Start(); return true;
+}
+bool UBrainSimulationSubsystem::StimulateA() { return BeginExperiment(FlyBrain::ExperimentCommand::ProbeA); }
+bool UBrainSimulationSubsystem::StimulateB() { return BeginExperiment(FlyBrain::ExperimentCommand::ProbeB); }
+bool UBrainSimulationSubsystem::TrainA() { return BeginExperiment(FlyBrain::ExperimentCommand::TrainA); }
+bool UBrainSimulationSubsystem::RunComparison() { return BeginExperiment(FlyBrain::ExperimentCommand::Compare); }
+void UBrainSimulationSubsystem::ForgetLearning() { EnableConditioningDemo(); }

@@ -40,6 +40,7 @@ int main()
     const auto ReplayHash = A.StateHash();
     A.Reset();
     Require(A.StateHash() == InitialHash && A.GetBacklogSeconds() == 0, "reset all state");
+    Require(A.GetTotalSpikeCount() == 0, "reset spike telemetry");
     for (int I = 0; I < 1000; ++I) { A.Step(); }
     Require(A.StateHash() == ReplayHash, "replay after reset");
 
@@ -52,6 +53,7 @@ int main()
     Require(A.GetSpikes()[0] == 0, "below threshold before step 28");
     A.Step();
     Require(A.GetSpikes()[0] == 1 && A.GetVoltages()[0] == -65.0, "threshold and reset");
+    Require(A.GetTotalSpikeCount() == 1, "cumulative spike telemetry");
     A.Step(); A.Step();
     Require(A.GetVoltages()[0] == -65.0 && A.GetSpikes()[0] == 0, "two refractory steps");
     A.Step(); Require(A.GetVoltages()[0] == -64.0, "refractory expiry");
@@ -94,6 +96,7 @@ int main()
     const double Seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - Start).count();
     for (int I = 0; I < Steps; ++I) { B.Step(); }
     Require(A.StateHash() == B.StateHash(), "benchmark result replay");
+    Require(A.StateHash() == 16884003706165038808ull, "pre-telemetry numerical baseline unchanged");
     std::cout << "PASS: all Brain Core tests\nneurons=1000 synapses=16000 steps=" << Steps
         << " steps/sec=" << Steps / Seconds << " core_storage_bytes=" << A.GetStorageBytes()
         << " state_hash=" << A.StateHash() << '\n';
